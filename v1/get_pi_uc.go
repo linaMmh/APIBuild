@@ -6,22 +6,15 @@ import (
 	"math/big"
 	"math/rand"
 	"net/http"
+	"test3/common"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-type ErrorResponse struct {
-	UserMessage     string `json:"userMessage"`
-	RandomGenerate  int    `json:"randomGenerate,omitempty"`
-	InternalMessage string `json:"internalMessage"`
-	MoreInfo        string `json:"moreInfo"`
-}
-
-type Response struct {
-	Param  int    `json:"param,omitempty"`
-	Random int    `json:"random"`
-	PiCalc string `json:"PiCalc"`
+type KeepPiInterface interface {
+	setPi(indice string, response common.Response) error
+	getPi(indice string) (common.Response, error)
 }
 
 type ValidatePiRandom struct {
@@ -32,28 +25,48 @@ type ValidatePi struct {
 	RandomNumber int `form:"random_number" binding:"required,numeric,excludesall=-."`
 }
 
-type GetPi struct{}
+type GetPi struct {
+	keepPiInterface KeepPiInterface
+}
 
 func (uc *GetPi) GetPiRandom(c *gin.Context) {
 	var random ValidatePiRandom
 	if err := c.ShouldBindQuery(&random); err != nil {
-		er := ErrorResponse{}
-		er.UserMessage = "MESSAGE"
-		er.InternalMessage = "BAD_PARAMS"
-		er.MoreInfo = err.Error()
+		er := common.ErrorResponse{
+			UserMessage:     "MESSAGE",
+			InternalMessage: "BAD_PARAMS",
+			MoreInfo:        err.Error(),
+		}
+
 		c.IndentedJSON(http.StatusBadRequest, er)
 		return
 	}
-	inputNumber := random.InputNumber
-	randomCalculate := calculateRandom(inputNumber)
-	pi, _ := calculatePI(float64(randomCalculate))
 
-	response := Response{
-		Param:  inputNumber,
-		Random: randomCalculate,
-		PiCalc: fmt.Sprint(pi),
+	inputNumber := random.InputNumber
+
+	randomCalculate := calculateRandom(inputNumber)
+	indice := fmt.Sprintf("pi-decimals-%s", randomCalculate)
+	resp, err := uc.keepPiInterface.getPi(indice)
+
+	if err != nil {
+		fmt.Println("errrooor en redis 1")
 	}
 
+	var response common.Response
+	if (common.Response{} == response) {
+		pi, _ := calculatePI(float64(randomCalculate))
+		response = common.Response{
+			Param:  inputNumber,
+			Random: randomCalculate,
+			PiCalc: fmt.Sprint(pi),
+		}
+	}
+	response = resp
+
+	err = uc.keepPiInterface.setPi(indice, response)
+	if err != nil {
+		fmt.Println("errrooor en redis 2")
+	}
 	c.IndentedJSON(http.StatusOK, response)
 }
 
@@ -61,10 +74,11 @@ func (uc *GetPi) GetPi(c *gin.Context) {
 	var random ValidatePi
 
 	if err := c.ShouldBindQuery(&random); err != nil {
-		er := ErrorResponse{}
-		er.UserMessage = "MESSAGE"
-		er.InternalMessage = "BAD_PARAMS"
-		er.MoreInfo = err.Error()
+		er := common.ErrorResponse{
+			UserMessage:     "MESSAGE",
+			InternalMessage: "BAD_PARAMS",
+			MoreInfo:        err.Error(),
+		}
 		c.IndentedJSON(http.StatusBadRequest, er)
 		return
 	}
@@ -72,7 +86,7 @@ func (uc *GetPi) GetPi(c *gin.Context) {
 	inputNumber := random.RandomNumber
 	pi, _ := calculatePI(float64(inputNumber))
 
-	response := Response{
+	response := common.Response{
 		Random: inputNumber,
 		PiCalc: fmt.Sprint(pi),
 	}
@@ -148,7 +162,6 @@ func calculatePI(decimals float64) (*big.Float, uint) {
 	return pi, prec
 }
 
-// NewGetOrdersRepository  initialize repository.
-func NewGetPi() *GetPi {
-	return &GetPi{}
+func NewGetPi(keepPiInterface KeepPiInterface) *GetPi {
+	return &GetPi{keepPiInterface: keepPiInterface}
 }
