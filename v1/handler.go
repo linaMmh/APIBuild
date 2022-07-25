@@ -5,17 +5,18 @@ import "github.com/gin-gonic/gin"
 type GetPiInterface interface {
 	GetPiRandom(c *gin.Context)
 	GetPi(c *gin.Context)
+	DeletePi(c *gin.Context)
 }
 
 type Api struct {
 	getPiInterface GetPiInterface
 }
 
-// Handler
 func (a *Api) Handler() error {
 	router := gin.Default()
 	router.GET("/getPiRandom", a.getPiInterface.GetPiRandom)
 	router.GET("/getPi", a.getPiInterface.GetPi)
+	router.DELETE("/deletePi", a.getPiInterface.DeletePi)
 
 	err := router.Run("localhost:8080")
 	if err != nil {

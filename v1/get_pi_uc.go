@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -10,11 +11,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 )
 
+const IndexRedis string = "pi-decimals-%b"
+
 type KeepPiInterface interface {
-	setPi(indice string, response common.Response) error
-	getPi(indice string) (common.Response, error)
+	setPi(index string, response common.Response) error
+	getPi(index string) (common.Response, error)
+	deletePi(index string) error
 }
 
 type ValidatePiRandom struct {
@@ -26,15 +31,18 @@ type ValidatePi struct {
 }
 
 type GetPi struct {
-	keepPiInterface KeepPiInterface
+	keepPiInterface    KeepPiInterface
+	maxRandomPrecision int
+	redisEnabled       bool
 }
 
 func (uc *GetPi) GetPiRandom(c *gin.Context) {
+	// First: validate correct data
 	var random ValidatePiRandom
 	if err := c.ShouldBindQuery(&random); err != nil {
 		er := common.ErrorResponse{
-			UserMessage:     "MESSAGE",
-			InternalMessage: "BAD_PARAMS",
+			UserMessage:     "The data sent is not valid",
+			InternalMessage: "CONFLICT_BAD_PARAMS",
 			MoreInfo:        err.Error(),
 		}
 
@@ -42,63 +50,165 @@ func (uc *GetPi) GetPiRandom(c *gin.Context) {
 		return
 	}
 
+	// Assign random number received
 	inputNumber := random.InputNumber
 
-	randomCalculate := calculateRandom(inputNumber)
-	indice := fmt.Sprintf("pi-decimals-%s", randomCalculate)
-	resp, err := uc.keepPiInterface.getPi(indice)
-
+	// calculate random number between (inputNumber/2 and inputNumber+1).
+	randomCalculate, err := calculateRandom(inputNumber, uc.maxRandomPrecision)
 	if err != nil {
-		fmt.Println("errrooor en redis 1")
+		er := common.ErrorResponse{
+			UserMessage:     "Random parameter would cause overflow",
+			RandomGenerate:  randomCalculate,
+			InternalMessage: "CONFLICT_RANDOM_NOT_VALID",
+			MoreInfo:        err.Error(),
+		}
+
+		c.IndentedJSON(http.StatusBadRequest, er)
+		return
 	}
 
-	var response common.Response
-	if (common.Response{} == response) {
+	// If Redis is disabled: calculate pi and return the value.
+	if !uc.redisEnabled {
 		pi, _ := calculatePI(float64(randomCalculate))
-		response = common.Response{
+		response := common.Response{
 			Param:  inputNumber,
 			Random: randomCalculate,
 			PiCalc: fmt.Sprint(pi),
 		}
-	}
-	response = resp
 
-	err = uc.keepPiInterface.setPi(indice, response)
-	if err != nil {
-		fmt.Println("errrooor en redis 2")
+		c.IndentedJSON(http.StatusOK, response)
+		return
 	}
+
+	response, err := saveInRedis(randomCalculate, uc.keepPiInterface)
+	// if exist some error return it
+	if err != nil {
+		er := common.ErrorResponse{
+			UserMessage:     "A problem occurred when querying Redis",
+			RandomGenerate:  randomCalculate,
+			InternalMessage: "CONFLICT_WITH_REDIS",
+			MoreInfo:        err.Error(),
+		}
+
+		c.IndentedJSON(http.StatusConflict, er)
+		return
+	}
+
+	// assign missing parameter
+	response.Param = inputNumber
+	response.Random = randomCalculate
+
 	c.IndentedJSON(http.StatusOK, response)
 }
 
 func (uc *GetPi) GetPi(c *gin.Context) {
+	// First: validate correct data
 	var random ValidatePi
-
 	if err := c.ShouldBindQuery(&random); err != nil {
 		er := common.ErrorResponse{
-			UserMessage:     "MESSAGE",
-			InternalMessage: "BAD_PARAMS",
+			UserMessage:     "The data sent is not valid",
+			InternalMessage: "CONFLICT_BAD_PARAMS",
 			MoreInfo:        err.Error(),
 		}
 		c.IndentedJSON(http.StatusBadRequest, er)
 		return
 	}
 
+	// Assign random number received
 	inputNumber := random.RandomNumber
-	pi, _ := calculatePI(float64(inputNumber))
 
-	response := common.Response{
-		Random: inputNumber,
-		PiCalc: fmt.Sprint(pi),
+	// If Redis is disabled: calculate pi and return the value.
+	if !uc.redisEnabled {
+		pi, _ := calculatePI(float64(inputNumber))
+		response := common.Response{
+			Random: inputNumber,
+			PiCalc: fmt.Sprint(pi),
+		}
+
+		c.IndentedJSON(http.StatusOK, response)
+		return
 	}
+
+	response, err := saveInRedis(inputNumber, uc.keepPiInterface)
+	// if exist some error return it
+	if err != nil {
+		er := common.ErrorResponse{
+			UserMessage:     "A problem occurred when querying Redis",
+			InternalMessage: "CONFLICT_WITH_REDIS",
+			MoreInfo:        err.Error(),
+		}
+
+		c.IndentedJSON(http.StatusBadRequest, er)
+		return
+	}
+	// assign missing parameter
+	response.Random = inputNumber
 
 	c.IndentedJSON(http.StatusOK, response)
 }
 
-func calculateRandom(number int) int {
+func (uc *GetPi) DeletePi(c *gin.Context) {
+	// First: validate correct data
+	var random ValidatePi
+	if err := c.ShouldBindQuery(&random); err != nil {
+		er := common.ErrorResponse{
+			UserMessage:     "The data sent is not valid",
+			InternalMessage: "CONFLICT_BAD_PARAMS",
+			MoreInfo:        err.Error(),
+		}
+		c.IndentedJSON(http.StatusBadRequest, er)
+		return
+	}
+
+	if !uc.redisEnabled {
+		er := common.ErrorResponse{
+			UserMessage:     "Redis Server Disabled",
+			InternalMessage: "CONFLICT_REDIS_DISABLED",
+			MoreInfo:        "Redis Server Disabled",
+		}
+		c.IndentedJSON(http.StatusConflict, er)
+		return
+	}
+	// search the index
+	index := fmt.Sprintf(IndexRedis, random.RandomNumber)
+	_, err := uc.keepPiInterface.getPi(index)
+	if err != nil {
+		er := common.ErrorResponse{
+			UserMessage:     "A problem occurred when querying Redis",
+			InternalMessage: "CONFLICT_WITH_REDIS",
+			MoreInfo:        err.Error(),
+		}
+
+		c.IndentedJSON(http.StatusConflict, er)
+		return
+	}
+
+	// Delete the index
+	err = uc.keepPiInterface.deletePi(index)
+	if err != nil {
+		er := common.ErrorResponse{
+			UserMessage:     "A problem occurred when querying Redis",
+			InternalMessage: "CONFLICT_WITH_REDIS",
+			MoreInfo:        err.Error(),
+		}
+
+		c.IndentedJSON(http.StatusConflict, er)
+		return
+	}
+}
+
+func calculateRandom(number, maxRandom int) (int, error) {
 	min := number / 2
 	max := number + 1
 	rand.Seed(time.Now().UnixNano())
-	return rand.Intn(max-min) + min
+	random := rand.Intn(max-min) + min
+
+	// validate if random generated is valid
+	if maxRandom != 0 && random > maxRandom {
+		return 0, errors.New("random is not valid")
+	}
+
+	return random, nil
 }
 
 func calculatePI(decimals float64) (*big.Float, uint) {
@@ -162,6 +272,44 @@ func calculatePI(decimals float64) (*big.Float, uint) {
 	return pi, prec
 }
 
-func NewGetPi(keepPiInterface KeepPiInterface) *GetPi {
-	return &GetPi{keepPiInterface: keepPiInterface}
+func saveInRedis(numberDecimals int, uc KeepPiInterface) (common.Response, error) {
+	response := common.Response{}
+
+	// Create index for Redis
+	index := fmt.Sprintf(IndexRedis, numberDecimals)
+
+	// search index
+	resp, err := uc.getPi(index)
+	if err != nil && err != redis.Nil {
+		return response, err
+	}
+
+	// assign response
+	response = resp
+	// if the response is empty: calculate Pi
+	if (common.Response{} == response) {
+		pi, _ := calculatePI(float64(numberDecimals))
+		response = common.Response{
+			PiCalc: fmt.Sprint(pi),
+		}
+	}
+
+	err = uc.setPi(index, response)
+	if err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func NewGetPi(
+	keepPiInterface KeepPiInterface,
+	maxRandomPrecision int,
+	redisEnabled bool,
+) *GetPi {
+	return &GetPi{
+		keepPiInterface:    keepPiInterface,
+		maxRandomPrecision: maxRandomPrecision,
+		redisEnabled:       redisEnabled,
+	}
 }
