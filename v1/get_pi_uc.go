@@ -7,35 +7,42 @@ import (
 	"math/big"
 	"math/rand"
 	"net/http"
-	"test3/common"
+	"pi-api/common"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 )
 
+// IndexRedis Default index from redis
 const IndexRedis string = "pi-decimals-%b"
 
+// KeepPiInterface repository in charge of managing the cache in redis
 type KeepPiInterface interface {
 	setPi(index string, response common.Response) error
 	getPi(index string) (common.Response, error)
 	deletePi(index string) error
 }
 
+// ValidatePiRandom struct to validation on input_number
 type ValidatePiRandom struct {
-	InputNumber int `form:"input_number" binding:"required,numeric,excludesall=-."`
+	InputNumber int `form:"input_number" binding:"gt=0,required,numeric,excludesall=-."`
 }
 
+// ValidatePi struct to validation on input_number
 type ValidatePi struct {
-	RandomNumber int `form:"random_number" binding:"required,numeric,excludesall=-."`
+	RandomNumber int `form:"random_number" binding:"gt=0,required,numeric,excludesall=-."`
 }
 
+// GetPi class from get pi.
 type GetPi struct {
 	keepPiInterface    KeepPiInterface
 	maxRandomPrecision int
 	redisEnabled       bool
 }
 
+// GetPiRandom function in charge of generating a random number
+// with the input_number parameter and based on this format pi with a certain number of decimals
 func (uc *GetPi) GetPiRandom(c *gin.Context) {
 	// First: validate correct data
 	var random ValidatePiRandom
@@ -55,6 +62,7 @@ func (uc *GetPi) GetPiRandom(c *gin.Context) {
 
 	// calculate random number between (inputNumber/2 and inputNumber+1).
 	randomCalculate, err := calculateRandom(inputNumber, uc.maxRandomPrecision)
+
 	if err != nil {
 		er := common.ErrorResponse{
 			UserMessage:     "Random parameter would cause overflow",
@@ -63,7 +71,7 @@ func (uc *GetPi) GetPiRandom(c *gin.Context) {
 			MoreInfo:        err.Error(),
 		}
 
-		c.IndentedJSON(http.StatusBadRequest, er)
+		c.IndentedJSON(http.StatusConflict, er)
 		return
 	}
 
@@ -101,6 +109,7 @@ func (uc *GetPi) GetPiRandom(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, response)
 }
 
+// GetPi function in charge of generate pi with a certain number of decimals given in parameter random_number
 func (uc *GetPi) GetPi(c *gin.Context) {
 	// First: validate correct data
 	var random ValidatePi
@@ -130,6 +139,7 @@ func (uc *GetPi) GetPi(c *gin.Context) {
 	}
 
 	response, err := saveInRedis(inputNumber, uc.keepPiInterface)
+
 	// if exist some error return it
 	if err != nil {
 		er := common.ErrorResponse{
@@ -138,7 +148,7 @@ func (uc *GetPi) GetPi(c *gin.Context) {
 			MoreInfo:        err.Error(),
 		}
 
-		c.IndentedJSON(http.StatusBadRequest, er)
+		c.IndentedJSON(http.StatusConflict, er)
 		return
 	}
 	// assign missing parameter
@@ -147,6 +157,7 @@ func (uc *GetPi) GetPi(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, response)
 }
 
+// DeletePi function in charge of delete index of pi in redis
 func (uc *GetPi) DeletePi(c *gin.Context) {
 	// First: validate correct data
 	var random ValidatePi
@@ -197,6 +208,7 @@ func (uc *GetPi) DeletePi(c *gin.Context) {
 	}
 }
 
+// calculateRandom random number between (inputNumber/2 and inputNumber+1).
 func calculateRandom(number, maxRandom int) (int, error) {
 	min := number / 2
 	max := number + 1
@@ -211,6 +223,8 @@ func calculateRandom(number, maxRandom int) (int, error) {
 	return random, nil
 }
 
+// calculatePI random number between (inputNumber/2 and inputNumber+1).
+// this implementation was taken from https://github.com/omar-toma/pi-calculator/blob/master/src/pi.go
 func calculatePI(decimals float64) (*big.Float, uint) {
 	n := int64(2 + int(float64(decimals)/14.181647462))
 	prec := uint(int(math.Ceil(math.Log2(10)*decimals)) + int(math.Ceil(math.Log10(decimals))) + 2)
@@ -272,6 +286,7 @@ func calculatePI(decimals float64) (*big.Float, uint) {
 	return pi, prec
 }
 
+// saveInRedis responsible for managing the memory repository in redis.
 func saveInRedis(numberDecimals int, uc KeepPiInterface) (common.Response, error) {
 	response := common.Response{}
 
@@ -302,6 +317,7 @@ func saveInRedis(numberDecimals int, uc KeepPiInterface) (common.Response, error
 	return response, nil
 }
 
+// NewGetPi constructor of use case.
 func NewGetPi(
 	keepPiInterface KeepPiInterface,
 	maxRandomPrecision int,

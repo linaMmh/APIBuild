@@ -1,0 +1,24 @@
+version: "3.8"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    links:
+      - redis
+    environment:
+      REDIS_LOCAL_URL: "localhost:6379"
+      MAX_RANDOM_PRECISION_DEFAULT: 200
+      REDIS_ENABLED: "true"
+    networks:
+      - minesweepernet
+  redis:
+    image: "redis:alpine"
+    networks:
+      - minesweepernet
+    ports:
+      - "6379:6379"
+networks:
+  minesweepernet: # network to communicate containers with each other

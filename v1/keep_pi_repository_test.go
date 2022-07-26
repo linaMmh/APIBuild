@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"pi-api/common"
 	"reflect"
-	"test3/common"
 	"testing"
 )
 
-var resp = common.Response{
+var Generalresp = common.Response{
 	Param:  5,
 	Random: 5,
 	PiCalc: "3.14",
@@ -86,7 +86,7 @@ func TestKeepPi_getPi(t *testing.T) {
 			args: args{
 				index: fmt.Sprintf(IndexRedis, 5),
 			},
-			want:    resp,
+			want:    Generalresp,
 			wantErr: false,
 			mock: func(f fields, a args) {
 				mock.ExpectHGet(a.index, CacheField).
@@ -148,7 +148,7 @@ func TestKeepPi_setPi(t *testing.T) {
 			},
 			args: args{
 				index:    fmt.Sprintf(IndexRedis, 5),
-				response: resp,
+				response: Generalresp,
 			},
 			wantErr: false,
 			mock: func(f fields, a args) {
@@ -163,7 +163,7 @@ func TestKeepPi_setPi(t *testing.T) {
 			},
 			args: args{
 				index:    fmt.Sprintf(IndexRedis, 5),
-				response: resp,
+				response: Generalresp,
 			},
 			wantErr: true,
 			mock: func(f fields, a args) {

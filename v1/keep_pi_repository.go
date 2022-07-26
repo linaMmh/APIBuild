@@ -4,17 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"test3/common"
+	"pi-api/common"
 
 	"github.com/go-redis/redis/v8"
 )
 
+// CacheField const from field from redis
 const CacheField string = "pi-decimals-number"
 
+// KeepPi structure from repoitory
 type KeepPi struct {
 	ClientDB *redis.Client
 }
 
+// setPi function from set value of pi in redis
 func (r *KeepPi) setPi(index string, response common.Response) error {
 	jsonSend, err := json.Marshal(response)
 	if err != nil {
@@ -30,6 +33,7 @@ func (r *KeepPi) setPi(index string, response common.Response) error {
 	return nil
 }
 
+// getPi function from get value of pi in redis
 func (r *KeepPi) getPi(index string) (common.Response, error) {
 	client := r.ClientDB
 	val, err := client.HGet(context.Background(), index, CacheField).Result()
@@ -56,6 +60,7 @@ func (r *KeepPi) getPi(index string) (common.Response, error) {
 	return response, nil
 }
 
+// deletePi function from delete value of pi in redis
 func (r *KeepPi) deletePi(index string) error {
 	client := r.ClientDB
 	_, err := client.Del(context.Background(), index).Result()
@@ -67,6 +72,7 @@ func (r *KeepPi) deletePi(index string) error {
 	return nil
 }
 
+// NewKeepPiRepository constructor from repository
 func NewKeepPiRepository(
 	client *redis.Client,
 ) *KeepPi {

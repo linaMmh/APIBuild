@@ -1,0 +1,244 @@
+{
+	"info": {
+		"_postman_id": "0459f624-47e9-4e42-8b20-4d112b48908a",
+		"name": "APIBuild",
+		"description": "services from api build",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get Pi Random",
+			"item": [
+				{
+					"name": "Ger random pi successfully",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/getPiRandom?input_number=100",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"getPiRandom"
+							],
+							"query": [
+								{
+									"key": "input_number",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Get random pi"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Fail exceed maximum random",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkubWVycXVlby5jb20iLCJhdWQiOiJtZXJxdWVvLmNvbSIsImlhdCI6MTY1NzY2MTUxMSwiZXhwIjoxNjYxMjkwMzExLCJzdWIiOjIxODU3MTksImZpcnN0X25hbWUiOiJEYXZlIiwibGFzdF9uYW1lIjoiTWVyY2hhbnQiLCJlbWFpbCI6ImRtZXJjaGFuQG1lcnF1ZW8uY29tIiwicGhvbmUiOiIzMDIzMzI3MzE0IiwicGhvbmVfdmFsaWRhdGVkX2RhdGUiOnsiZGF0ZSI6IjIwMjItMDctMDcgMTU6MTE6NDMuMDAwMDAwIiwidGltZXpvbmVfdHlwZSI6MywidGltZXpvbmUiOiJBbWVyaWNhXC9Cb2dvdGEifSwic3RhdHVzIjp0cnVlfQ.RamxGaX_d3UEieHeaXaRmXSO-8oBU3PA1evtaiMlfYc",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8080/getPiRandom?input_number=100000",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"getPiRandom"
+							],
+							"query": [
+								{
+									"key": "input_number",
+									"value": "100000"
+								}
+							]
+						},
+						"description": "exceed maximum random number\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Get fail bas params",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkubWVycXVlby5jb20iLCJhdWQiOiJtZXJxdWVvLmNvbSIsImlhdCI6MTY1NzY2MTUxMSwiZXhwIjoxNjYxMjkwMzExLCJzdWIiOjIxODU3MTksImZpcnN0X25hbWUiOiJEYXZlIiwibGFzdF9uYW1lIjoiTWVyY2hhbnQiLCJlbWFpbCI6ImRtZXJjaGFuQG1lcnF1ZW8uY29tIiwicGhvbmUiOiIzMDIzMzI3MzE0IiwicGhvbmVfdmFsaWRhdGVkX2RhdGUiOnsiZGF0ZSI6IjIwMjItMDctMDcgMTU6MTE6NDMuMDAwMDAwIiwidGltZXpvbmVfdHlwZSI6MywidGltZXpvbmUiOiJBbWVyaWNhXC9Cb2dvdGEifSwic3RhdHVzIjp0cnVlfQ.RamxGaX_d3UEieHeaXaRmXSO-8oBU3PA1evtaiMlfYc",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8080/getPiRandom?input_number=-1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"getPiRandom"
+							],
+							"query": [
+								{
+									"key": "input_number",
+									"value": "-1"
+								}
+							]
+						},
+						"description": "Fail parameters\n"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Get Pi",
+			"item": [
+				{
+					"name": "Get correct response",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/getPi?random_number=100",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"getPi"
+							],
+							"query": [
+								{
+									"key": "random_number",
+									"value": "100"
+								}
+							]
+						},
+						"description": "pi generated successfully"
+					},
+					"response": []
+				},
+				{
+					"name": "Get fail bad params",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/getPi?random_number=-1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"getPi"
+							],
+							"query": [
+								{
+									"key": "random_number",
+									"value": "-1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Delete pi",
+			"item": [
+				{
+					"name": "Delete pi fail",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/deletePi?random_number=100",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"deletePi"
+							],
+							"query": [
+								{
+									"key": "random_number",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Rerdis disabled"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete pi fail not found",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/deletePi?random_number=1458",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"deletePi"
+							],
+							"query": [
+								{
+									"key": "random_number",
+									"value": "1458"
+								}
+							]
+						},
+						"description": "Not found index"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete pi successfully",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/deletePi?random_number=100",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"deletePi"
+							],
+							"query": [
+								{
+									"key": "random_number",
+									"value": "100"
+								}
+							]
+						},
+						"description": "success with 100 created in Get pi > Get correct response"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
