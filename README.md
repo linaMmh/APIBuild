@@ -38,7 +38,7 @@ or
 docker-compose up
 ```
 
-### Para consulatar la api
+### Para consultar la api
 Existen 3 servicios principales:
 
 ```GET http://localhost:8080/getPiRandom?input_number=100```
@@ -67,7 +67,7 @@ El servicio toma el valor enviado y como resultado se obtiene el valor de PI con
 El servicio busca si existe el valor de un incide en Redis y lo elimina```
 
 Para más información, consultar la colección de PostMan adjunta en  ```APIBuild.postman_collection.json```
-##Estructura de directorios.
+## Estructura de directorios.
 
 El api esta dividida en:
 
@@ -78,7 +78,7 @@ El api esta dividida en:
     ├── v1: contenedor de los casos de uso y repositorios del proyecto
 
 
-##parámetros de configuración del microservicio.
+## Parámetros de configuración del microservicio.
 Se configuraron 3 variables de entorno para el funcionamiento del proyecto
 
 ```REDIS_LOCAL_URL``` : variable de la conexion a redis
@@ -87,9 +87,9 @@ Se configuraron 3 variables de entorno para el funcionamiento del proyecto
 
 ```REDIS_ENABLED``` : Indica si se usara redis
 
-##Seguridad de la API
+## Seguridad de la API
 
-###¿Qué componentes usarías para securitizar tu API?.
+### ¿Qué componentes usarías para securitizar tu API?.
 
 Haría una autenticación por medio de un api key, crearía otro microservicio que se encargue únicamente de validar la correcta autenticación y sería llamado antes de iniciar el proceso principal.
 
